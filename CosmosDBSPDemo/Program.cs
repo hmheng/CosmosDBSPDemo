@@ -141,7 +141,11 @@ namespace CosmosDBSPDemo
                     Console.WriteLine("Job RetrievedBy : " + job.RetrievedBy);
                     Console.WriteLine("Job RetrievedAt : " + job.RetrievedAt);
                     Console.WriteLine("****************************************************\n");
+
+                    job.JobDescription = job.JobDescription + "1";
+                    UpdateAsync(job).GetAwaiter().GetResult();
                 }
+                
             }
         }
 
@@ -183,7 +187,15 @@ namespace CosmosDBSPDemo
 
             await CheckExistenceOfDatabaseAndCollectionAsync();
 
-            await _documentClient.ReplaceDocumentAsync(UriFactory.CreateDocumentUri(_databaseId, _collectionId, job.Id), job);
+            var ac = GetAccessCondition(job);
+            try
+            {
+                await _documentClient.ReplaceDocumentAsync(UriFactory.CreateDocumentUri(_databaseId, _collectionId, job.Id), job,
+                    new RequestOptions { AccessCondition = ac });
+            }catch(Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
         }
 
         private static async Task CheckExistenceOfDatabaseAndCollectionAsync()
@@ -199,6 +211,11 @@ namespace CosmosDBSPDemo
                 Console.WriteLine(ex.Message);
             }
 
+        }
+
+        private static AccessCondition GetAccessCondition(Job job)
+        {
+            return new AccessCondition { Condition = job._etag, Type = AccessConditionType.IfMatch };
         }
     }
 }
